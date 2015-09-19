@@ -1,3 +1,4 @@
+var crypto = require("crypto");
 var config = require("./config.js");
 var redis = require("redis-url").connect(config.REDIS_URL);
 var restify = require("restify");
@@ -42,27 +43,47 @@ function new_bot(req, res, next){
 
 	// extract bot object from message
 	log.message(log.DEBUG, "req.body: "  + req.body);
-	var bot_obj = JSON.parse(req.body);
+	var bot_obj = req.body;
 
-	// extract properties
-	var bot_name = bot_obj.name;
-	log.message(log.DEBUG, "bot_name: " + bot_name);
+	// TODO: test incoming object for req. properties
+	log.message(log.DEBUG, "bot_obj.name: " + bot_obj.name);
 
-	// TODO: check if name exists
-	redis.sismember("bots", bot_name, function(error, value){
+	// check if name exists
+	redis.sismember("bots", bot_obj.name, function(error, value){
 		if(error){
 			log.message(log.ERROR, "Error checking for existing bot name: " + error);
 			return next(new restify.InternalError(error));
-		}
-		if(value >= 0){
-			log.message(log.WARN, "Bot name exists: " + bot_name);
-			// TODO: return "name exists" status and exit
 		} else {
-			// TODO: generate auth key
-			// TODO: store data
-			// TODO: return updated JSON
-			res.send(200);
-			return next;
+			if(value > 0){
+				log.message(log.WARN, "Bot name exists: " + bot_obj.name);
+				// TODO: return "name exists" status and exit
+			} else {
+				log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
+				// generate auth key
+				var shasum = crypto.createHash("sha1");
+				shasum.update(JSON.stringify(bot_obj));
+				bot_obj.auth_token = shasum.digest("hex");
+				log.message(log.DEBUG, "bot_obj.auth_token = " + bot_obj.auth_token);
+				// store data
+				redis.set(bot_obj.name, JSON.stringify(bot_obj), function(error, value){
+					if(error){
+						log.message(log.ERROR, "Error storing bot object: " + error);
+						return next(new restify.InternalError(error));
+					} else {
+						// update index
+						redis.sadd("bots", bot_obj.name, function(error, value){
+							if(error){
+								log.message(log.ERROR, "Error updating bot index: " + error);
+								return next(new restify.InternalError(error));
+							} else {	
+								// return updated JSON
+								res.send(bot_obj);
+								return next;
+							}
+						});
+					}
+				});
+			}
 		}
 	});
 }
