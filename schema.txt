@@ -1,0 +1,10 @@
+Redis structures used by this application
+
+<name> - Bot data
+<id> - Message data
+
+bots - Index of bot names
+messages - Index of message id's
+tokens:<name> - Index of token history for bot <name>
+following:<name> - Index of bot names that bot <name> is following
+followers:<name> - Index of bot names that are following bot <name>
