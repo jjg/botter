@@ -44,7 +44,8 @@ function new_bot(req, res, next){
 	// extract bot object from message
 	var bot_obj = req.body;
 
-	// test incoming object for req. properties
+	// test incoming object for name (the only required property)
+	// TODO: if name isn't specified, generate a new unique one 
 	if(!bot_obj.hasOwnProperty("name")){ 
 		log.message(log.WARN, "Insufficient data to create a new bot: " + JSON.stringify(bot_obj));
 		return next(new restify.MissingParameterError());
@@ -90,11 +91,29 @@ function new_bot(req, res, next){
 	}
 }
 
-// TODO: get bot
+// get bot
 function get_bot(req, res, next){
 	log.message(log.DEBUG, "get_bot()");
-	res.send(200);
-	return next;
+	// extract bot name from request
+	var bot_name = req.params.bot_name
+	log.message(log.DEBUG, "Requested bot: " + bot_name);
+
+	// load bot data
+	redis.get(bot_name, function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error loading bot data: " + error);
+		} else {
+			log.message(log.DEBUG, "value: " + value);
+			if(!value){
+				log.message(log.WARN, "No bots found named " + bot_name);
+				return next(new restify.ResourceNotFoundError(bot_name));
+			} else {
+				// return bot data
+				res.send(value);
+				return next;
+			}
+		}
+	});
 }
 
 // TODO: update bot
