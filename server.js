@@ -36,8 +36,24 @@ function get_status(req, res, next){
 	return next;
 }
 
+// TODO: create new bot
+function new_bot(req, res, next){
+	log.message(log.DEBUG, "new_bot()");
+	res.send(200);
+	return next;
+}
+
+// TODO: get bot
+// TODO: delete bot
+// TODO: list bots
+// TODO: create a new message
+// TODO: get message
+// TODO: delete message
+// TODO: list messages
+
 // endpoints
 server.get({path:"/status", version: "1.0.0"}, get_status);
+server.post({path:"/bots", version: "1.0.0"}, new_bot);
 
 // start server
 server.listen(config.SERVER_PORT, function() {
