@@ -31,6 +31,7 @@ server.on('MethodNotAllowed', unknownMethodHandler);
 
 // endpoint handlers
 function get_status(req, res, next){
+	log.message(log.DEBUG, "get_status()");
 	res.send("all good");
 	return next;
 }
