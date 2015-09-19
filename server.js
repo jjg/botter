@@ -61,11 +61,12 @@ function new_bot(req, res, next){
 					return next(new restify.InvalidContentError(bot_obj.name));
 				} else {
 					log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
-					// generate auth key
-					var shasum = crypto.createHash("sha1");
-					shasum.update(JSON.stringify(bot_obj));
-					bot_obj.auth_token = shasum.digest("hex");
-					log.message(log.DEBUG, "bot_obj.auth_token = " + bot_obj.auth_token);
+					// generate bot token
+					bot_obj.token = new_token(bot_obj); 
+					//var shasum = crypto.createHash("sha1");
+					//shasum.update(JSON.stringify(bot_obj));
+					//bot_obj.token = shasum.digest("hex");
+					log.message(log.DEBUG, "bot_obj.token = " + bot_obj.token);
 					// store data
 					redis.set(bot_obj.name, JSON.stringify(bot_obj), function(error, value){
 						if(error){
@@ -108,7 +109,7 @@ function get_bot(req, res, next){
 				log.message(log.WARN, "No bots found named " + bot_name);
 				return next(new restify.ResourceNotFoundError(bot_name));
 			} else {
-				// TODO: probably shouldn't return the auth_token in an unauthenticated request
+				// TODO: probably shouldn't return the token in an unauthenticated request
 				// return bot data
 				res.send(value);
 				return next;
@@ -122,16 +123,16 @@ function update_bot(req, res, next){
 	log.message(log.DEBUG, "update_bot()");
 	// extract properties from request
 	var bot_name = req.params.bot_name;
-	var auth_token = req.query.auth_token;
+	var token = req.query.token;
 	var bot_obj = req.body;
 	log.message(log.DEBUG, "bot_name: " + bot_name);
-	log.message(log.DEBUG, "auth_token: " + auth_token);
+	log.message(log.DEBUG, "token: " + token);
 	log.message(log.DEBUG, "bot_obj: " + JSON.stringify(bot_obj));
 	// check authorization
-	check_authorization(auth_token, function(authorized){
+	check_authorization(token, function(authorized){
 		if(!authorized){
 			log.message(log.WARN, "Authorization failed");
-			return next(new restify.NotAuthorizedError(auth_token));
+			return next(new restify.NotAuthorizedError(token));
 		} else {
 			log.message(log.INFO, "Authorization sucessful");
 			// save updated data
@@ -154,12 +155,12 @@ function delete_bot(req, res, next){
 	log.message(log.DEBUG, "delete_bot()");
 	// get the parameters from the request
 	var bot_name = req.params.bot_name;
-	var auth_token = req.query.auth_token;
+	var token = req.query.token;
 	// authorize the request
-	check_authorization(auth_token, function(authorized){
+	check_authorization(token, function(authorized){
 		if(!authorized){
 			log.message(log.WARN, "Authorization failed");
-			return next(new restify.NotAuthorizedError(auth_token));
+			return next(new restify.NotAuthorizedError(token));
 		} else {
 			// remove bot from index
 			redis.srem("bots", bot_name, function(error, value){
@@ -238,12 +239,72 @@ function list_messages(req, res, next){
 }
 
 // utility functions
-function check_authorization(token, callback){
+function new_token(obj){
+	// generate new token
+	var shasum = crypto.createHash("sha1");
+	shasum.update(JSON.stringify(obj));
+	return shasum.digest("hex");
+}
+
+function check_authorization(bot_name, token, callback){
 	log.message(log.DEBUG, "check_authorization()");
-	// TODO: make sure token belongs to a bot that exists
-	// TODO: make sure the bot is authorized to do what it's trying to do
-	log.message(log.WARN, "WARNING: All authorization is at the moment bogus!!!");
-	callback(true);
+	var authorization_result = {};
+	// compare token to bot's current token
+	redis.get(bot_name, function(error, value){
+		if(error){
+			authorization_result.authorized = false;
+			authorization_result.reason = "Error loading bot data: " + error;
+			log.message(log.ERROR, authorization_result.reason);
+			callback(authorization_result);
+		} else {
+			var bot = JSON.parse(value);
+			log.message(log.DEBUG, "Loaded bot " + bot.name);
+			// if tokens match,
+			if(bot.token == token){
+				// add current token to history
+				redis.sadd("tokens:" + bot_name, bot.token, function(error, value){
+					if(error){
+						authorization_result.authorized = false;
+						authorization_result.reason = "Error adding token to history: " + error;
+						log.message(log.ERROR, authorization_result.reason);
+						callback(authorization_result);
+					} else {
+						// generate new token
+						bot.token = new_token(bot);
+						// store new token
+						redis.set(bot.name, JSON.stringify(bot), function(error, value){
+							if(error){
+								authorization_result.authorized = false;
+								authorization_result.reason = "Error storing new token: " + error;
+								log.message(log.ERROR, authorization_result.reason);
+								callback(authorization_result);
+							} else {
+								// return new token
+								authorization_result.token = bot.token;
+								// authorize request
+								authorization_result.authorized = true;
+								callback(authorization_result);
+							}
+						});
+					}
+				});
+			} else {
+				// TODO: if tokens don't match, check token history
+				// TODO: if found in history, check override flag
+				// TODO: if override is set, generate new token
+				// TODO: store new token
+				// TODO: return new token
+				// TODO: authorize request
+				// TODO: if override is not set, return warning and do not authorize request
+				// TODO: if token is not found in history, do not authorize request
+
+				// TODO: make sure the bot is authorized to do what it's trying to do
+
+				log.message(log.WARN, "WARNING: All authorization is at the moment bogus!!!");
+				callback(authorization_result);
+			}
+		}
+	});
 }
 
 // endpoints
