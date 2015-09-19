@@ -36,11 +36,35 @@ function get_status(req, res, next){
 	return next;
 }
 
-// TODO: create new bot
+// create new bot
 function new_bot(req, res, next){
 	log.message(log.DEBUG, "new_bot()");
-	res.send(200);
-	return next;
+
+	// extract bot object from message
+	log.message(log.DEBUG, "req.body: "  + req.body);
+	var bot_obj = JSON.parse(req.body);
+
+	// extract properties
+	var bot_name = bot_obj.name;
+	log.message(log.DEBUG, "bot_name: " + bot_name);
+
+	// TODO: check if name exists
+	redis.sismember("bots", bot_name, function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error checking for existing bot name: " + error);
+			return next(new restify.InternalError(error));
+		}
+		if(value >= 0){
+			log.message(log.WARN, "Bot name exists: " + bot_name);
+			// TODO: return "name exists" status and exit
+		} else {
+			// TODO: generate auth key
+			// TODO: store data
+			// TODO: return updated JSON
+			res.send(200);
+			return next;
+		}
+	});
 }
 
 // TODO: get bot
