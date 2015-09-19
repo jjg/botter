@@ -117,18 +117,72 @@ function get_bot(req, res, next){
 	});
 }
 
-// TODO: update bot
+// update bot
 function update_bot(req, res, next){
-	log.message(log.DEBUG, "update_bot");
-	res.send(200);
-	return next;
+	log.message(log.DEBUG, "update_bot()");
+	// extract properties from request
+	var bot_name = req.params.bot_name;
+	var auth_token = req.query.auth_token;
+	var bot_obj = req.body;
+	log.message(log.DEBUG, "bot_name: " + bot_name);
+	log.message(log.DEBUG, "auth_token: " + auth_token);
+	log.message(log.DEBUG, "bot_obj: " + JSON.stringify(bot_obj));
+	// check authorization
+	check_authorization(auth_token, function(authorized){
+		if(!authorized){
+			log.message(log.WARN, "Authorization failed");
+			return next(new restify.NotAuthorizedError(auth_token));
+		} else {
+			log.message(log.INFO, "Authorization sucessful");
+			// save updated data
+			redis.set(bot_name, JSON.stringify(bot_obj), function(error, value){
+				if(error){
+					log.message(log.ERROR, "Error updating bot: " + error);
+					return next(new restify.InternalError(error));
+				} else {
+					// return updated data
+					res.send(bot_obj);
+					return next;
+				}
+			});
+		}
+	});
 }
 
-// TODO: delete bot
+// delete bot
 function delete_bot(req, res, next){
 	log.message(log.DEBUG, "delete_bot()");
-	res.send(200);
-	return next;
+	// get the parameters from the request
+	var bot_name = req.params.bot_name;
+	var auth_token = req.query.auth_token;
+	// authorize the request
+	check_authorization(auth_token, function(authorized){
+		if(!authorized){
+			log.message(log.WARN, "Authorization failed");
+			return next(new restify.NotAuthorizedError(auth_token));
+		} else {
+			// remove bot from index
+			redis.srem("bots", bot_name, function(error, value){
+				if(error){
+					log.message(log.ERROR, "Error removing bot from index: " + error);
+					return next(new restify.InternalError(error));
+				} else {
+					// delete bot data
+					redis.del(bot_name, function(error, value){
+						if(error){
+							log.message(log.ERROR, "Error deleting bot: " + error);
+							return next(new restify.InternalError(error));
+						} else {
+							// TODO: re-map any remaining messages from this bot to the "deleted" bot account
+							// return result
+							res.send(204);
+							return next;
+						}
+					});
+				}
+			});
+		}
+	});
 }
 
 // list bots
@@ -184,9 +238,11 @@ function list_messages(req, res, next){
 }
 
 // utility functions
-function authorized(token, callback){
+function check_authorization(token, callback){
+	log.message(log.DEBUG, "check_authorization()");
 	// TODO: make sure token belongs to a bot that exists
 	// TODO: make sure the bot is authorized to do what it's trying to do
+	log.message(log.WARN, "WARNING: All authorization is at the moment bogus!!!");
 	callback(true);
 }
 
