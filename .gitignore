@@ -1,3 +1,4 @@
 *.swp
 *.rdb
+*.log
 config.js

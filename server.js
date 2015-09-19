@@ -46,7 +46,6 @@ function new_bot(req, res, next){
 	var bot_obj = req.body;
 
 	// TODO: test incoming object for req. properties
-	log.message(log.DEBUG, "bot_obj.name: " + bot_obj.name);
 
 	// check if name exists
 	redis.sismember("bots", bot_obj.name, function(error, value){
@@ -56,7 +55,7 @@ function new_bot(req, res, next){
 		} else {
 			if(value > 0){
 				log.message(log.WARN, "Bot name exists: " + bot_obj.name);
-				// TODO: return "name exists" status and exit
+				return next(new restify.InvalidContentError(bot_obj.name));
 			} else {
 				log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
 				// generate auth key
