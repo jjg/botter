@@ -42,49 +42,52 @@ function new_bot(req, res, next){
 	log.message(log.DEBUG, "new_bot()");
 
 	// extract bot object from message
-	log.message(log.DEBUG, "req.body: "  + req.body);
 	var bot_obj = req.body;
 
-	// TODO: test incoming object for req. properties
-
-	// check if name exists
-	redis.sismember("bots", bot_obj.name, function(error, value){
-		if(error){
-			log.message(log.ERROR, "Error checking for existing bot name: " + error);
-			return next(new restify.InternalError(error));
-		} else {
-			if(value > 0){
-				log.message(log.WARN, "Bot name exists: " + bot_obj.name);
-				return next(new restify.InvalidContentError(bot_obj.name));
+	// test incoming object for req. properties
+	if(!bot_obj.hasOwnProperty("name")){ 
+		log.message(log.WARN, "Insufficient data to create a new bot: " + JSON.stringify(bot_obj));
+		return next(new restify.MissingParameterError());
+	} else {
+		// check if name exists
+		redis.sismember("bots", bot_obj.name, function(error, value){
+			if(error){
+				log.message(log.ERROR, "Error checking for existing bot name: " + error);
+				return next(new restify.InternalError(error));
 			} else {
-				log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
-				// generate auth key
-				var shasum = crypto.createHash("sha1");
-				shasum.update(JSON.stringify(bot_obj));
-				bot_obj.auth_token = shasum.digest("hex");
-				log.message(log.DEBUG, "bot_obj.auth_token = " + bot_obj.auth_token);
-				// store data
-				redis.set(bot_obj.name, JSON.stringify(bot_obj), function(error, value){
-					if(error){
-						log.message(log.ERROR, "Error storing bot object: " + error);
-						return next(new restify.InternalError(error));
-					} else {
-						// update index
-						redis.sadd("bots", bot_obj.name, function(error, value){
-							if(error){
-								log.message(log.ERROR, "Error updating bot index: " + error);
-								return next(new restify.InternalError(error));
-							} else {	
-								// return updated JSON
-								res.send(bot_obj);
-								return next;
-							}
-						});
-					}
-				});
+				if(value > 0){
+					log.message(log.WARN, "Bot name exists: " + bot_obj.name);
+					return next(new restify.InvalidContentError(bot_obj.name));
+				} else {
+					log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
+					// generate auth key
+					var shasum = crypto.createHash("sha1");
+					shasum.update(JSON.stringify(bot_obj));
+					bot_obj.auth_token = shasum.digest("hex");
+					log.message(log.DEBUG, "bot_obj.auth_token = " + bot_obj.auth_token);
+					// store data
+					redis.set(bot_obj.name, JSON.stringify(bot_obj), function(error, value){
+						if(error){
+							log.message(log.ERROR, "Error storing bot object: " + error);
+							return next(new restify.InternalError(error));
+						} else {
+							// update index
+							redis.sadd("bots", bot_obj.name, function(error, value){
+								if(error){
+									log.message(log.ERROR, "Error updating bot index: " + error);
+									return next(new restify.InternalError(error));
+								} else {	
+									// return updated JSON
+									res.send(bot_obj);
+									return next;
+								}
+							});
+						}
+					});
+				}
 			}
-		}
-	});
+		});
+	}
 }
 
 // TODO: get bot
@@ -148,6 +151,13 @@ function list_messages(req, res, next){
 	log.message(log.DEBUG, "list_messages()");
 	res.send(200);
 	return next;
+}
+
+// utility functions
+function authorized(token, callback){
+	// TODO: make sure token belongs to a bot that exists
+	// TODO: make sure the bot is authorized to do what it's trying to do
+	callback(true);
 }
 
 // endpoints
