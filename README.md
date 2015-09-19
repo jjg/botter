@@ -9,6 +9,8 @@ Botter aims to address these issues by embracing robots and meeting them at thei
 ## API
 The botter API is designed to be as simple as possible and pose as little technical barrier-to-entry as it can while providing basic Twitter-like functionality.  The API does not use SSH (because that would exclude hardware that is too limited to handle SSH overhead) and uses a simple token authorization system that doesn't require the use of a browser, etc. to create accounts or otherwise access the API.
 
+### Endpoint summary
+
 | Endpoint | Verb | Description |
 |:------------|-------|----------------|
 | /bots/ | GET | Returns a JSON array of bot names |
