@@ -40,5 +40,5 @@ server.get({path:"/status", version: "1.0.0"}, get_status);
 
 // start server
 server.listen(config.SERVER_PORT, function() {
-	console.log("Botter API listening at %s", config.SERVER_PORT);
+	log.message(log.INFO, "Botter API listening on port " + config.SERVER_PORT);
 });
