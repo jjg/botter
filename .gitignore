@@ -1,4 +1,3 @@
 *.swp
 *.rdb
-node_modules
 config.js

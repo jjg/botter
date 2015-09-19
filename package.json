@@ -1,0 +1,13 @@
+{
+	"name":"botter",
+	"version": "1.0.0",
+	"dependencies": {
+		"restify": "x",
+		"redis-url": "x",
+		"nodemailer": "x"
+	},
+	"repository":{
+		"type":"git",
+		"url":"https://github.com/jjg/botter"
+	}
+}
