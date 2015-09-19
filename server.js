@@ -97,17 +97,18 @@ function get_bot(req, res, next){
 	// extract bot name from request
 	var bot_name = req.params.bot_name
 	log.message(log.DEBUG, "Requested bot: " + bot_name);
-
 	// load bot data
 	redis.get(bot_name, function(error, value){
 		if(error){
 			log.message(log.ERROR, "Error loading bot data: " + error);
+			return next(new restify.InternalError(error));
 		} else {
 			log.message(log.DEBUG, "value: " + value);
 			if(!value){
 				log.message(log.WARN, "No bots found named " + bot_name);
 				return next(new restify.ResourceNotFoundError(bot_name));
 			} else {
+				// TODO: probably shouldn't return the auth_token in an unauthenticated request
 				// return bot data
 				res.send(value);
 				return next;
@@ -130,11 +131,21 @@ function delete_bot(req, res, next){
 	return next;
 }
 
-// TODO: list bots
+// list bots
 function list_bots(req, res, next){
-	log.message(log.DEBUG, "list_bots");
-	res.send(200);
-	return next;
+	log.message(log.DEBUG, "list_bots()");
+	// get bot list
+	redis.smembers("bots", function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error reading bot list: " + error);
+			return next(new restify.InternalError(error));
+		} else {
+			// return list
+			// TODO: consider returning a different HTTP status if the list is empty
+			res.send(value);
+			return next;
+		}
+	});
 }
 
 // TODO: create a new message
