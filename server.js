@@ -42,46 +42,53 @@ function new_bot(req, res, next){
 	log.message(log.DEBUG, "new_bot()");
 
 	// extract bot object from message
-	var bot_obj = req.body;
+	var bot = req.body;
 
 	// test incoming object for name (the only required property)
 	// TODO: if name isn't specified, generate a new unique one 
-	if(!bot_obj.hasOwnProperty("name")){ 
-		log.message(log.WARN, "Insufficient data to create a new bot: " + JSON.stringify(bot_obj));
+	if(!bot.hasOwnProperty("name")){ 
+		log.message(log.WARN, "Insufficient data to create a new bot: " + JSON.stringify(bot));
 		return next(new restify.MissingParameterError());
 	} else {
 		// check if name exists
-		redis.sismember("bots", bot_obj.name, function(error, value){
+		redis.sismember("bots", bot.name, function(error, value){
 			if(error){
 				log.message(log.ERROR, "Error checking for existing bot name: " + error);
 				return next(new restify.InternalError(error));
 			} else {
 				if(value > 0){
-					log.message(log.WARN, "Bot name exists: " + bot_obj.name);
-					return next(new restify.InvalidContentError(bot_obj.name));
+					log.message(log.WARN, "Bot name exists: " + bot.name);
+					return next(new restify.InvalidContentError(bot.name));
 				} else {
-					log.message(log.INFO, "Bot name does not exist, creating new bot " + bot_obj.name);
+					log.message(log.INFO, "Bot name does not exist, creating new bot " + bot.name);
 					// generate bot token
-					bot_obj.token = new_token(bot_obj); 
-					//var shasum = crypto.createHash("sha1");
-					//shasum.update(JSON.stringify(bot_obj));
-					//bot_obj.token = shasum.digest("hex");
-					log.message(log.DEBUG, "bot_obj.token = " + bot_obj.token);
-					// store data
-					redis.set(bot_obj.name, JSON.stringify(bot_obj), function(error, value){
+					new_token(bot, function(error, new_token){
 						if(error){
-							log.message(log.ERROR, "Error storing bot object: " + error);
+							log.message(log.ERROR, "Error generating new token: " + error);
 							return next(new restify.InternalError(error));
 						} else {
-							// update index
-							redis.sadd("bots", bot_obj.name, function(error, value){
+							bot.token = new_token; 
+							//var shasum = crypto.createHash("sha1");
+							//shasum.update(JSON.stringify(bot_obj));
+							//bot_obj.token = shasum.digest("hex");
+							log.message(log.DEBUG, "bot.token = " + bot.token);
+							// store data
+							redis.set(bot.name, JSON.stringify(bot), function(error, value){
 								if(error){
-									log.message(log.ERROR, "Error updating bot index: " + error);
+									log.message(log.ERROR, "Error storing bot object: " + error);
 									return next(new restify.InternalError(error));
-								} else {	
-									// return updated JSON
-									res.send(bot_obj);
-									return next;
+								} else {
+									// update index
+									redis.sadd("bots", bot.name, function(error, value){
+										if(error){
+											log.message(log.ERROR, "Error updating bot index: " + error);
+											return next(new restify.InternalError(error));
+										} else {	
+											// return updated JSON
+											res.send(bot);
+											return next;
+										}
+									});
 								}
 							});
 						}
@@ -124,25 +131,29 @@ function update_bot(req, res, next){
 	// extract properties from request
 	var bot_name = req.params.bot_name;
 	var token = req.query.token;
-	var bot_obj = req.body;
+	var override = req.query.override;
+	var bot = req.body;
 	log.message(log.DEBUG, "bot_name: " + bot_name);
 	log.message(log.DEBUG, "token: " + token);
-	log.message(log.DEBUG, "bot_obj: " + JSON.stringify(bot_obj));
+	log.message(log.DEBUG, "bot: " + JSON.stringify(bot));
 	// check authorization
-	check_authorization(token, function(authorized){
-		if(!authorized){
+	check_authorization(token, override, function(authorization_result){
+		if(!authorization_result.authorized){
 			log.message(log.WARN, "Authorization failed");
 			return next(new restify.NotAuthorizedError(token));
 		} else {
 			log.message(log.INFO, "Authorization sucessful");
+			// update token
+			bot.token = authorization_result.token;
 			// save updated data
-			redis.set(bot_name, JSON.stringify(bot_obj), function(error, value){
+			// TODO: should we abort if the bot name specified in the URL doesn't match the data?
+			redis.set(bot.name, JSON.stringify(bot), function(error, value){
 				if(error){
 					log.message(log.ERROR, "Error updating bot: " + error);
 					return next(new restify.InternalError(error));
 				} else {
 					// return updated data
-					res.send(bot_obj);
+					res.send(bot);
 					return next;
 				}
 			});
@@ -156,9 +167,10 @@ function delete_bot(req, res, next){
 	// get the parameters from the request
 	var bot_name = req.params.bot_name;
 	var token = req.query.token;
+	var override = req.query.override;
 	// authorize the request
-	check_authorization(token, function(authorized){
-		if(!authorized){
+	check_authorization(token, override, function(authorization_result){
+		if(!authorization_result.authorized){
 			log.message(log.WARN, "Authorization failed");
 			return next(new restify.NotAuthorizedError(token));
 		} else {
@@ -239,15 +251,86 @@ function list_messages(req, res, next){
 }
 
 // utility functions
-function new_token(obj){
+function new_token(bot, callback){
+	log.message(log.DEBUG, "new_token()");
+	log.message(log.DEBUG, "Original token: " + bot.token);
+
 	// generate new token
 	var shasum = crypto.createHash("sha1");
-	shasum.update(JSON.stringify(obj));
-	return shasum.digest("hex");
+	shasum.update(JSON.stringify(bot));
+	bot.token = shasum.digest("hex");
+	
+	log.message(log.DEBUG, "New token: " + bot.token);
+
+	// add token to index
+	redis.set(bot.token, bot.name, function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error adding new token to index");
+			callback("Error adding new token to the index", null);
+		} else {
+			callback(null, bot.token);
+		}
+	});
 }
 
-function check_authorization(bot_name, token, callback){
+function check_authorization(token, override, callback){
 	log.message(log.DEBUG, "check_authorization()");
+	var authorization_result = {};
+
+	// laod the bot associated with the token or fail
+	redis.get(token, function(error, value){
+		if(error){
+			authorization_result.authorized = false;
+			authorization_result.reason = "Error loading bot name for supplied token";
+			log.message(log.ERROR, authorization_result.reason);
+			callback(authorization_result);
+		} else {
+			if(value){
+
+				// Compare the token to the bot's current token
+				redis.get(value, function(error, value){
+					if(error){
+						authorization_result.authorized = false;
+						authorization_result.reason = "Error loading bot by name";
+						log.message(log.ERROR, authorization_result.reason);
+						callback(authorization_result);
+					} else {
+						var bot = JSON.parse(value);
+
+						// if they match, or override is true, generate a new token and authorize
+						if(bot.token == token || override){
+
+							// generate a new token and authorize
+							new_token(bot, function(error, new_token){
+								if(error){
+									authorization_result.authorized = false;
+									authorization_result.reason = "Error generating new token";
+									log.message(log.ERROR, authorization_result.reason);
+									callback(authorization_result);
+								} else {
+									authorization_result.authorized = true;
+									authorization_result.token = new_token;
+									log.message(log.DEBUG, "Authorization sucessful, new token: " + new_token);
+									callback(authorization_result);
+								}
+							});
+
+						} else {
+
+							// don't authorize
+							authorization_result.authorized = false;
+							authorization_result.reason = "Token has expired and override was not requested";
+							log.message(log.WARN, authorization_result.reason);
+							callback(authorization_result);
+						}
+					}
+				});
+			}
+		}
+	});
+
+/*
+
 	var authorization_result = {};
 	// compare token to bot's current token
 	redis.get(bot_name, function(error, value){
@@ -305,6 +388,7 @@ function check_authorization(bot_name, token, callback){
 			}
 		}
 	});
+*/
 }
 
 // endpoints
