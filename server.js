@@ -214,21 +214,52 @@ function list_bots(req, res, next){
 	});
 }
 
-// TODO: create a new message
+// create a new message
 function new_message(req, res, next){
 	log.message(log.DEBUG, "new_message()");
 	var bot_name = req.params.bot_name;
 	var token = req.query.token;
+	var override = req.query.override;
  	var message = req.body;
 
-	// TODO: authorize
-	// TODO: generate message_id
-	// TODO: store message
-	// TODO: add message to index
-	// TODO: return result
+	// authorize
+	check_authorization(token, override, function(authorization_result){
+		if(authorization_result.authorized){
 
-	res.send(200);
-	return next;
+			// generate message_id
+			var shasum = crypto.createHash("sha1");
+			shasum.update(JSON.stringify(message));
+			message.message_id = shasum.digest("hex");
+
+			// store message
+			redis.set(message.message_id, JSON.stringify(message), function(error, value){
+				if(error){
+					log.message(log.ERROR, "Error storing message: " + error);
+					return next(new restify.InternalError(error));
+				} else {
+					// add message to index
+					redis.sadd("messages", message.message_id, function(error, value){
+						if(error){
+							log.message(log.ERROR, "Error adding message to index: " + error);
+							return next(new restify.InternalError(error));
+						} else {
+
+							// add the updated token to the message
+							message.token = authorization_result.token;
+
+							// return result
+							res.send(message);
+							return next;
+						}
+					});
+				}
+			});
+		} else {
+			// return unauthorized
+			log.message(log.WARN, "Authorization failed: " + authorization_result.reason);
+			return next(new restify.NotAuthorizedError(token));
+		}
+	});
 }
 
 // TODO: get message
@@ -252,11 +283,21 @@ function delete_message(req, res, next){
 	return next;
 }
 
-// TODO: list messages
+// list messages
 function list_messages(req, res, next){
 	log.message(log.DEBUG, "list_messages()");
-	res.send(200);
-	return next;
+	// get message list
+	redis.smembers("messages", function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error reading message list: " + error);
+			return next(new restify.InternalError(error));
+		} else {
+			// return list
+			// TODO: consider returning a different HTTP status if the list is empty
+			res.send(value);
+			return next;
+		}
+	});
 }
 
 // utility functions
@@ -355,7 +396,7 @@ server.get({path:"/bots/:bot_name", version: "1.0.0"}, get_bot);
 server.put({path:"/bots/:bot_name", version: "1.0.0"}, update_bot);
 server.del({path:"/bots/:bot_name", version: "1.0.0"}, delete_bot);
 server.get({path:"/bots/:bot_name/messages", version: "1.0.0"}, list_messages);
-server.post({path:"/bots/:bot_name/messages", version "1.0.0"}, new_message);
+server.post({path:"/bots/:bot_name/messages", version: "1.0.0"}, new_message);
 server.get({path:"/messages", version: "1.0.0"}, list_messages);
 server.get({path:"/messages/:message_id", version: "1.0.0"}, get_message);
 server.put({path:"/messages/:message_id", version: "1.0.0"}, update_message);
