@@ -325,70 +325,14 @@ function check_authorization(token, override, callback){
 						}
 					}
 				});
-			}
-		}
-	});
-
-/*
-
-	var authorization_result = {};
-	// compare token to bot's current token
-	redis.get(bot_name, function(error, value){
-		if(error){
-			authorization_result.authorized = false;
-			authorization_result.reason = "Error loading bot data: " + error;
-			log.message(log.ERROR, authorization_result.reason);
-			callback(authorization_result);
-		} else {
-			var bot = JSON.parse(value);
-			log.message(log.DEBUG, "Loaded bot " + bot.name);
-			// if tokens match,
-			if(bot.token == token){
-				// add current token to history
-				redis.sadd("tokens:" + bot_name, bot.token, function(error, value){
-					if(error){
-						authorization_result.authorized = false;
-						authorization_result.reason = "Error adding token to history: " + error;
-						log.message(log.ERROR, authorization_result.reason);
-						callback(authorization_result);
-					} else {
-						// generate new token
-						bot.token = new_token(bot);
-						// store new token
-						redis.set(bot.name, JSON.stringify(bot), function(error, value){
-							if(error){
-								authorization_result.authorized = false;
-								authorization_result.reason = "Error storing new token: " + error;
-								log.message(log.ERROR, authorization_result.reason);
-								callback(authorization_result);
-							} else {
-								// return new token
-								authorization_result.token = bot.token;
-								// authorize request
-								authorization_result.authorized = true;
-								callback(authorization_result);
-							}
-						});
-					}
-				});
 			} else {
-				// TODO: if tokens don't match, check token history
-				// TODO: if found in history, check override flag
-				// TODO: if override is set, generate new token
-				// TODO: store new token
-				// TODO: return new token
-				// TODO: authorize request
-				// TODO: if override is not set, return warning and do not authorize request
-				// TODO: if token is not found in history, do not authorize request
-
-				// TODO: make sure the bot is authorized to do what it's trying to do
-
-				log.message(log.WARN, "WARNING: All authorization is at the moment bogus!!!");
+				authorization_result.authorized = false;
+				authorization_result.reason = "Token is invalid";
+				log.message(log.WARN, authorization_result.reason);
 				callback(authorization_result);
 			}
 		}
 	});
-*/
 }
 
 // endpoints
