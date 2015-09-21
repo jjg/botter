@@ -68,9 +68,6 @@ function new_bot(req, res, next){
 							return next(new restify.InternalError(error));
 						} else {
 							bot.token = new_token; 
-							//var shasum = crypto.createHash("sha1");
-							//shasum.update(JSON.stringify(bot_obj));
-							//bot_obj.token = shasum.digest("hex");
 							log.message(log.DEBUG, "bot.token = " + bot.token);
 							// store data
 							redis.set(bot.name, JSON.stringify(bot), function(error, value){
@@ -116,9 +113,11 @@ function get_bot(req, res, next){
 				log.message(log.WARN, "No bots found named " + bot_name);
 				return next(new restify.ResourceNotFoundError(bot_name));
 			} else {
-				// TODO: probably shouldn't return the token in an unauthenticated request
+				// probably shouldn't return the token in an unauthenticated request
+				var bot = JSON.parse(value);
+				delete bot.token;
 				// return bot data
-				res.send(value);
+				res.send(bot);
 				return next;
 			}
 		}
