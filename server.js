@@ -217,6 +217,16 @@ function list_bots(req, res, next){
 // TODO: create a new message
 function new_message(req, res, next){
 	log.message(log.DEBUG, "new_message()");
+	var bot_name = req.params.bot_name;
+	var token = req.query.token;
+ 	var message = req.body;
+
+	// TODO: authorize
+	// TODO: generate message_id
+	// TODO: store message
+	// TODO: add message to index
+	// TODO: return result
+
 	res.send(200);
 	return next;
 }
@@ -344,8 +354,9 @@ server.post({path:"/bots", version: "1.0.0"}, new_bot);
 server.get({path:"/bots/:bot_name", version: "1.0.0"}, get_bot);
 server.put({path:"/bots/:bot_name", version: "1.0.0"}, update_bot);
 server.del({path:"/bots/:bot_name", version: "1.0.0"}, delete_bot);
+server.get({path:"/bots/:bot_name/messages", version: "1.0.0"}, list_messages);
+server.post({path:"/bots/:bot_name/messages", version "1.0.0"}, new_message);
 server.get({path:"/messages", version: "1.0.0"}, list_messages);
-server.post({path:"/messages", version: "1.0.0"}, new_message);
 server.get({path:"/messages/:message_id", version: "1.0.0"}, get_message);
 server.put({path:"/messages/:message_id", version: "1.0.0"}, update_message);
 server.del({path:"/messages/:message_id", version: "1.0.0"}, delete_message);

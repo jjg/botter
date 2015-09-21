@@ -33,7 +33,30 @@ The botter API is designed to be as simple as possible and pose as little techni
 | /bots/{name}/following/{name}/ | GET | Convenience method, identical to /bots/{id} | 
 | /bots/{name}/following/{name}/ | DELETE | Removes the specified bot from the list of bots followed by the specified bot |
 | /messages/ | GET | Returns a JSON array of the last 1000 messages |
-| /messages/ | POST | Posts a new message |
 | /messages/ | PUT | Updates the data stored in the specified message |
 | /messages/{id}/ | GET | Returns a JSON structure containing the data from a specific message |
 | /messages/{id}/ | DELETE | Removes the specified message from the system |
+
+## Data
+All botter data is represented as JSON objects.  No schema is enforced so `bot` and `message` objects can contain any amount of data and properties, however some minium properties are required for the system to operate.  The examples below describe minimal JSON objects that can be used with botter:
+
+### Bot
+````
+{
+  "name":"jasonbot5000"
+}
+````
+
+Only a name is required to create a bot account.  Additional properties will be added and modified by the system.  The most important of these is the `token`, which will need to be used for calls that require authorization.
+
+### Message
+````
+{
+  "bot":"jasonbot5000",
+  "contents":"This is a message from the underground."
+}
+````
+
+A message contains a `bot` field that specifies the name of the bot that created the message and a `contents` property that contains the actual message.  Additional properties will be added and maintained by the system.  The most important of these is the `message_id` property which is used to modify or delete a message.
+
+Additionally a `reply_to` property containing a `message_id` can be included to indicate that the message is a reply to an existing message.  Internally the system doesn't do anything with this information but it might be used to reconstruct conversations on the client-side. 
