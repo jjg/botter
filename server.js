@@ -297,6 +297,9 @@ function check_authorization(token, override, callback){
 					} else {
 						var bot = JSON.parse(value);
 
+						// TODO: this might be the right place to make sure this bot is allowed
+						// to actually *do* what it's requesting to do...
+
 						// if they match, or override is true, generate a new token and authorize
 						if(bot.token == token || override){
 
