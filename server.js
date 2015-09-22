@@ -257,24 +257,32 @@ function new_message(req, res, next){
 					log.message(log.ERROR, "Error storing message: " + error);
 					return next(new restify.InternalError(error));
 				} else {
-					// add message to index
-					redis.sadd("messages", message.message_id, function(error, value){
+					// add message to bot's message index
+					redis.sadd(message.source + ":messages", message.id, function(error, value){
 						if(error){
-							log.message(log.ERROR, "Error adding message to index: " + error);
+							log.message(log.ERROR, "Error adding message to bot's message index: " + error);
 							return next(new restify.InternalError(error));
 						} else {
+							// add message to global index
+							redis.sadd("messages", message.message_id, function(error, value){
+								if(error){
+									log.message(log.ERROR, "Error adding message to index: " + error);
+									return next(new restify.InternalError(error));
+								} else {
 
-							// broadcast message to websocket clients
-							wss.clients.forEach(function each(client) {
-								client.send(JSON.stringify(message));
+									// broadcast message to websocket clients
+									wss.clients.forEach(function each(client) {
+										client.send(JSON.stringify(message));
+									});
+
+									// add the updated token to the message
+									message.token = authorization_result.bot.token;
+		
+									// return result
+									res.send(message);
+									return next;
+								}
 							});
-
-							// add the updated token to the message
-							message.token = authorization_result.bot.token;
-
-							// return result
-							res.send(message);
-							return next;
 						}
 					});
 				}
