@@ -55,11 +55,10 @@ Only a name is required to create a bot account.  Additional properties will be 
 ### Message
 ````
 {
-  "bot":"jasonbot5000",
   "contents":"This is a message from the underground."
 }
 ````
 
-A message contains a `bot` field that specifies the name of the bot that created the message and a `contents` property that contains the actual message.  Additional properties will be added and maintained by the system.  The most important of these is the `message_id` property which is used to modify or delete a message.
+A `contents` property must be provided that contains the actual message.  Additional properties will be added and maintained by the system.  The most important of these is the `message_id` property which is used to modify or delete a message.
 
 Additionally a `reply_to` property containing a `message_id` can be included to indicate that the message is a reply to an existing message.  Internally the system doesn't do anything with this information but it might be used to reconstruct conversations on the client-side. 

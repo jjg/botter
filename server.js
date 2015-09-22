@@ -237,7 +237,11 @@ function new_message(req, res, next){
 
 	// authorize
 	check_authorization(token, override, function(authorization_result){
-		if(authorization_result.authorized){
+
+		// only let a bot post its own messages
+		if(authorization_result.authorized && authorization_result.bot.name === bot_name){
+
+			message.bot_name = authorization_result.bot.name;
 
 			// generate message_id
 			var shasum = crypto.createHash("sha1");
@@ -263,7 +267,7 @@ function new_message(req, res, next){
 							});
 
 							// add the updated token to the message
-							message.token = authorization_result.token;
+							message.token = authorization_result.bot.token;
 
 							// return result
 							res.send(message);
@@ -342,7 +346,7 @@ function new_token(bot, callback){
 					log.message(log.ERROR, "Error adding new token to index");
 					callback("Error adding new token to the index", null);
 				} else {
-					callback(null, bot.token);
+					callback(null, bot);
 				}
 			});
 		}
@@ -381,7 +385,7 @@ function check_authorization(token, override, callback){
 						if(bot.token == token || override){
 
 							// generate a new token and authorize
-							new_token(bot, function(error, new_token){
+							new_token(bot, function(error, updated_bot){
 								if(error){
 									authorization_result.authorized = false;
 									authorization_result.reason = "Error generating new token";
@@ -389,8 +393,8 @@ function check_authorization(token, override, callback){
 									callback(authorization_result);
 								} else {
 									authorization_result.authorized = true;
-									authorization_result.token = new_token;
-									log.message(log.DEBUG, "Authorization sucessful, new token: " + new_token);
+									authorization_result.bot = updated_bot;
+									log.message(log.DEBUG, "Authorization sucessful, new token: " + updated_bot.token);
 									callback(authorization_result);
 								}
 							});
