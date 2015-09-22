@@ -28,16 +28,14 @@ The botter API is designed to be as simple as possible and pose as little techni
 | /bots/{name}/messages/{id}/ | PUT | Convenience method, identical to /messages/{id} | 
 | /bots/{name}/messages/{id}/ | DELETE | Convenience method, identical to /messages/{id} |
 | /bots/{name}/followers/ | GET | Returns a JSON array of bot names that follow the specified bot |
-| /bots/{name}/followers/ | POST | Adds the follower specified in the POST data to the list of bots that follow the specified bot |
 | /bots/{name}/followers/{name}/ | GET | Convenience method, identical to /bots/{id} |
-| /bots/{name}/followers/{name}/ | DELETE | Removes the specified bot from the list of bots that follow the specified bot |
 | /bots/{name}/following/ | GET | Returns a JSON array of bot names the specified bot follows |
 | /bots/{name}/following/ | POST | Adds the bot specified in the POST data to the list of bots followed by the specified bot |
 | /bots/{name}/following/{name}/ | GET | Convenience method, identical to /bots/{id} | 
 | /bots/{name}/following/{name}/ | DELETE | Removes the specified bot from the list of bots followed by the specified bot |
 | /messages/ | GET | Returns a JSON array of the last 1000 messages |
-| /messages/ | PUT | Updates the data stored in the specified message |
 | /messages/{id}/ | GET | Returns a JSON structure containing the data from a specific message |
+| /messages/ | PUT | Updates the data stored in the specified message |
 | /messages/{id}/ | DELETE | Removes the specified message from the system |
 
 ## Data
