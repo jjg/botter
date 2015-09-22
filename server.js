@@ -348,6 +348,87 @@ function list_messages(req, res, next){
 	});
 }
 
+// add to following list
+function start_following(req, res, next){
+	log.message(log.DEBUG, "start_following()");
+	var bot_name = req.params.bot_name;
+	var token = req.query.token;
+	var override = req.query.override;
+	var followee = req.body;
+
+	// authorize
+	check_authorization(token, override, function(authorization_result){
+
+		// only let a bot alter it's own follwer list
+		if(authorization_result.authorized && authorization_result.bot.name === bot_name){
+
+			// add bot name to follwing index
+			redis.sadd(bot_name + ":following", followee.name, function(error, value){
+				if(error){
+					log.message(log.ERROR, "Error adding bot to following index: " + error);
+					return next(restify.InternalError(error));
+				} else {
+					// add authorized bot's name to followers index
+					redis.sadd(followee.name + ":followers", bot_name, function(error, value){
+						if(error){
+							log.message(log.ERROR, "Error adding bot to follwer index: " + error);
+							return next(restify.InternalError(error));
+						} else {
+							res.send(204);
+							return next;
+						}
+					});
+				}
+			});
+		} else {
+			// return unauthorized
+			log.message(log.WARN, "Authorization failed: " + authorization_result.reason);
+			return next(new restify.NotAuthorizedError(token));
+		}
+	});
+}
+
+// TODO: remove from following list
+function stop_following(req, res, next){
+	log.message(log.DEBUG, "stop_following()");
+}
+
+// get following list
+function list_following(req, res, next){
+	log.message(log.DEBUG, "list_following()");
+
+	// get following list
+	redis.smembers(req.params.bot_name + ":following", function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error reading following list: " + error);
+			return next(new restify.InternalError(error));
+		} else {
+
+			// return list
+			res.send(value);
+			return next;
+		}
+	});
+}
+
+// get follower list
+function list_followers(req, res, next){
+	log.message(log.DEBUG, "list_followers()");
+
+	// get follower list
+	redis.smembers(req.params.bot_name + ":followers", function(error, value){
+			if(error){
+				log.message(log.ERROR, "Error reading follower list: " + error);
+				return next(new restify.InternalError(error));
+			} else {
+
+				// return list
+				res.send(value);
+				return next;
+			}   
+	});
+}
+
 // utility functions
 function new_token(bot, callback){
 	log.message(log.DEBUG, "new_token()");
@@ -451,6 +532,8 @@ server.put({path:"/bots/:bot_name", version: "1.0.0"}, update_bot);
 server.del({path:"/bots/:bot_name", version: "1.0.0"}, delete_bot);
 server.get({path:"/bots/:bot_name/messages", version: "1.0.0"}, list_messages);
 server.post({path:"/bots/:bot_name/messages", version: "1.0.0"}, new_message);
+server.post({path:"/bots/:bot_name/following", version: "1.0.0"}, start_following);
+server.del({path:"/bots/:bot_name/following/:followed_bot_name", version: "1.0.0"}, stop_following);
 server.get({path:"/messages", version: "1.0.0"}, list_messages);
 server.get({path:"/messages/:message_id", version: "1.0.0"}, get_message);
 server.put({path:"/messages/:message_id", version: "1.0.0"}, update_message);
