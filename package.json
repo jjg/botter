@@ -4,7 +4,8 @@
 	"dependencies": {
 		"restify": "x",
 		"redis-url": "x",
-		"nodemailer": "x"
+		"nodemailer": "x",
+		"ws":"x"
 	},
 	"repository":{
 		"type":"git",

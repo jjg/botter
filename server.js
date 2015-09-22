@@ -5,7 +5,20 @@ var restify = require("restify");
 var log = require("jlog.js");
 log.level = config.LOG_LEVEL;
 
-// config server
+// config websocket server
+var WebSocketServer = require('ws').Server
+wss = new WebSocketServer({ port: 8080 });
+wss.on('connection', function connection(ws) {
+	log.message(log.INFO, "New websocket client connected");
+/*
+	ws.on('message', function incoming(message) {
+		console.log('received: %s', message);
+	});
+*/
+	//ws.send('something');
+});
+
+// config REST server
 var server = restify.createServer();
 server.use(restify.bodyParser({ mapParams: false }));
 server.use(restify.queryParser());
@@ -244,6 +257,11 @@ function new_message(req, res, next){
 							return next(new restify.InternalError(error));
 						} else {
 
+							// broadcast message to websocket clients
+							wss.clients.forEach(function each(client) {
+								client.send(JSON.stringify(message));
+							});
+
 							// add the updated token to the message
 							message.token = authorization_result.token;
 
@@ -312,13 +330,21 @@ function new_token(bot, callback){
 	
 	log.message(log.DEBUG, "New token: " + bot.token);
 
-	// add token to index
-	redis.set(bot.token, bot.name, function(error, value){
+	// update bot data
+	redis.set(bot.name, JSON.stringify(bot), function(error, value){
 		if(error){
-			log.message(log.ERROR, "Error adding new token to index");
-			callback("Error adding new token to the index", null);
+			log.message(log.ERROR, "Error updating bot data: " + error);
+			callback("Error updating bot token: " + error, null);
 		} else {
-			callback(null, bot.token);
+			// add token to index
+			redis.set(bot.token, bot.name, function(error, value){
+				if(error){
+					log.message(log.ERROR, "Error adding new token to index");
+					callback("Error adding new token to the index", null);
+				} else {
+					callback(null, bot.token);
+				}
+			});
 		}
 	});
 }
@@ -345,6 +371,7 @@ function check_authorization(token, override, callback){
 						log.message(log.ERROR, authorization_result.reason);
 						callback(authorization_result);
 					} else {
+						log.message(log.DEBUG, "bot data: " + value);
 						var bot = JSON.parse(value);
 
 						// TODO: this might be the right place to make sure this bot is allowed
