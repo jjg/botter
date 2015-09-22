@@ -295,11 +295,18 @@ function new_message(req, res, next){
 	});
 }
 
-// TODO: get message
+// get message
 function get_message(req, res, next){
 	log.message(log.DEBUG, "get_message()");
-	res.send(200);
-	return next;
+	redis.get(req.params.message_id, function(error, value){
+		if(error){
+			log.message(log.ERROR, "Error reading message data: " + error);
+			return next(new restify.InternalError(error));
+		} else {
+			res.send(value);
+			return next;
+		}
+	});
 }
 
 // TODO: update message
