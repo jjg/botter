@@ -241,7 +241,10 @@ function new_message(req, res, next){
 		// only let a bot post its own messages
 		if(authorization_result.authorized && authorization_result.bot.name === bot_name){
 
-			message.bot_name = authorization_result.bot.name;
+			// add system-generated message properties
+			message.source = authorization_result.bot.name;
+			message.created = new Date().getTime();
+			message.modified = message.created;
 
 			// generate message_id
 			var shasum = crypto.createHash("sha1");
