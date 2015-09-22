@@ -75,27 +75,27 @@ function new_bot(req, res, next){
 				} else {
 					log.message(log.INFO, "Bot name does not exist, creating new bot " + bot.name);
 					// generate bot token
-					new_token(bot, function(error, new_token){
+					new_token(bot, function(error, updated_bot){
 						if(error){
 							log.message(log.ERROR, "Error generating new token: " + error);
 							return next(new restify.InternalError(error));
 						} else {
-							bot.token = new_token; 
-							log.message(log.DEBUG, "bot.token = " + bot.token);
+							//bot.token = new_token; 
+							log.message(log.DEBUG, "updated_bot.token = " + updated_bot.token);
 							// store data
-							redis.set(bot.name, JSON.stringify(bot), function(error, value){
+							redis.set(updated_bot.name, JSON.stringify(updated_bot), function(error, value){
 								if(error){
 									log.message(log.ERROR, "Error storing bot object: " + error);
 									return next(new restify.InternalError(error));
 								} else {
 									// update index
-									redis.sadd("bots", bot.name, function(error, value){
+									redis.sadd("bots", updated_bot.name, function(error, value){
 										if(error){
 											log.message(log.ERROR, "Error updating bot index: " + error);
 											return next(new restify.InternalError(error));
 										} else {	
 											// return updated JSON
-											res.send(bot);
+											res.send(updated_bot);
 											return next;
 										}
 									});
@@ -341,7 +341,6 @@ function list_messages(req, res, next){
 		} else {
 
 			// return list
-			// TODO: consider returning a different HTTP status if the list is empty
 			res.send(value);
 			return next;
 		}
@@ -532,7 +531,9 @@ server.put({path:"/bots/:bot_name", version: "1.0.0"}, update_bot);
 server.del({path:"/bots/:bot_name", version: "1.0.0"}, delete_bot);
 server.get({path:"/bots/:bot_name/messages", version: "1.0.0"}, list_messages);
 server.post({path:"/bots/:bot_name/messages", version: "1.0.0"}, new_message);
+server.get({path:"/bots/:bot_name/following", version: "1.0.0"}, list_following);
 server.post({path:"/bots/:bot_name/following", version: "1.0.0"}, start_following);
+server.get({path:"/bots/:bot_name/followers", version: "1.0.0"}, list_followers);
 server.del({path:"/bots/:bot_name/following/:followed_bot_name", version: "1.0.0"}, stop_following);
 server.get({path:"/messages", version: "1.0.0"}, list_messages);
 server.get({path:"/messages/:message_id", version: "1.0.0"}, get_message);
