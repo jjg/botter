@@ -326,7 +326,6 @@ function delete_message(req, res, next){
 // list messages
 function list_messages(req, res, next){
 	log.message(log.DEBUG, "list_messages()");
-
 	var index;
 	if(req.params.bot_name){
 		index = req.params.bot_name + ":messages";
@@ -340,6 +339,7 @@ function list_messages(req, res, next){
 			log.message(log.ERROR, "Error reading message list: " + error);
 			return next(new restify.InternalError(error));
 		} else {
+
 			// return list
 			// TODO: consider returning a different HTTP status if the list is empty
 			res.send(value);
@@ -403,9 +403,6 @@ function check_authorization(token, override, callback){
 					} else {
 						log.message(log.DEBUG, "bot data: " + value);
 						var bot = JSON.parse(value);
-
-						// TODO: this might be the right place to make sure this bot is allowed
-						// to actually *do* what it's requesting to do...
 
 						// if they match, or override is true, generate a new token and authorize
 						if(bot.token == token || override){
