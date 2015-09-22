@@ -144,15 +144,16 @@ function update_bot(req, res, next){
 	log.message(log.DEBUG, "bot: " + JSON.stringify(bot));
 	// check authorization
 	check_authorization(token, override, function(authorization_result){
-		if(!authorization_result.authorized){
+		if(!authorization_result.authorized || authorization_result.bot.name !== bot_name){
 			log.message(log.WARN, "Authorization failed");
 			return next(new restify.NotAuthorizedError(token));
 		} else {
 			log.message(log.INFO, "Authorization sucessful");
+			// override bot name in supplied data
+			bot.name = authorization_result.bot.name;
 			// update token
-			bot.token = authorization_result.token;
+			bot.token = authorization_result.bot.token;
 			// save updated data
-			// TODO: should we abort if the bot name specified in the URL doesn't match the data?
 			redis.set(bot.name, JSON.stringify(bot), function(error, value){
 				if(error){
 					log.message(log.ERROR, "Error updating bot: " + error);
@@ -366,7 +367,8 @@ function start_following(req, res, next){
 							log.message(log.ERROR, "Error adding bot to follwer index: " + error);
 							return next(restify.InternalError(error));
 						} else {
-							res.send(204);
+							// need to return the updated token
+							res.send(authorization_result.bot);
 							return next;
 						}
 					});
