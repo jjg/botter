@@ -10,12 +10,6 @@ var WebSocketServer = require('ws').Server
 wss = new WebSocketServer({ port: 8080 });
 wss.on('connection', function connection(ws) {
 	log.message(log.INFO, "New websocket client connected");
-/*
-	ws.on('message', function incoming(message) {
-		console.log('received: %s', message);
-	});
-*/
-	//ws.send('something');
 });
 
 // config REST server
@@ -220,7 +214,6 @@ function list_bots(req, res, next){
 			return next(new restify.InternalError(error));
 		} else {
 			// return list
-			// TODO: consider returning a different HTTP status if the list is empty
 			res.send(value);
 			return next;
 		}
