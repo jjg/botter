@@ -258,7 +258,7 @@ function new_message(req, res, next){
 					return next(new restify.InternalError(error));
 				} else {
 					// add message to bot's message index
-					redis.sadd(message.source + ":messages", message.id, function(error, value){
+					redis.sadd(message.source + ":messages", message.message_id, function(error, value){
 						if(error){
 							log.message(log.ERROR, "Error adding message to bot's message index: " + error);
 							return next(new restify.InternalError(error));
@@ -319,8 +319,16 @@ function delete_message(req, res, next){
 // list messages
 function list_messages(req, res, next){
 	log.message(log.DEBUG, "list_messages()");
+
+	var index;
+	if(req.params.bot_name){
+		index = req.params.bot_name + ":messages";
+	} else {
+		index = "messages";
+	}
+
 	// get message list
-	redis.smembers("messages", function(error, value){
+	redis.smembers(index, function(error, value){
 		if(error){
 			log.message(log.ERROR, "Error reading message list: " + error);
 			return next(new restify.InternalError(error));
