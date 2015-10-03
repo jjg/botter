@@ -303,18 +303,53 @@ function get_message(req, res, next){
       });
 }
 
-// TODO: update message
+// update message
 function update_message(req, res, next){
   log.message(log.DEBUG, "update_message()");
-  res.send(200);
-  return next;
+  var bot_name = req.params.bot_name;
+  var token = req.query.token;
+  var override = req.query.override;
+  var message = req.body;
+  message.message_id = req.message_id;
+
+  // authorize
+  check_authorization(token, override, function(authorization_result){
+
+     // only let a bot post its own messages
+     if(authorization_result.authorized && authorization_result.bot.name === bot_name){
+
+     // store message
+     redis.set(message.message_id, JSON.stringify(message), function(error, value){
+        if(error){
+          log.message(log.ERROR, "Error storing message: " + error);
+          return next(new restify.InternalError(error));
+        } else {
+          // broadcast message to websocket clients
+          wss.clients.forEach(function each(client) {
+              client.send(JSON.stringify(message));
+          });
+
+          // add the updated token to the message
+          message.token = authorization_result.bot.token;
+
+          // return result
+          res.send(message);
+          return next;
+        }
+      });
+    } else {
+        // return unauthorized
+        log.message(log.WARN, "Authorization failed: " + authorization_result.reason);
+        return next(new restify.NotAuthorizedError(token));
+      }
+  });
 }
 
 // TODO: delete message
 function delete_message(req, res, next){
   log.message(log.DEBUG, "delete_message()");
-  res.send(200);
-  return next;
+  // TODO: remove message data
+  // TODO: remove message from message index
 }
 
 // list messages
@@ -382,7 +417,7 @@ function start_following(req, res, next){
   });
 }
 
-// TODO: remove from following list
+// remove from following list
 function stop_following(req, res, next){
   log.message(log.DEBUG, "stop_following()");
   var bot_name = req.params.bot_name;
@@ -573,5 +608,5 @@ server.del({path:"/messages/:message_id", version: "1.0.0"}, delete_message);
 
 // start server
 server.listen(config.SERVER_PORT, function() {
-    log.message(log.INFO, "Botter API listening on port " + config.SERVER_PORT);
-    });
+  log.message(log.INFO, "Botter API listening on port " + config.SERVER_PORT);
+});
