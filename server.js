@@ -267,7 +267,7 @@ function new_message(req, res, next){
                   // broadcast message to websocket clients
                   wss.clients.forEach(function each(client) {
                       client.send(JSON.stringify(message));
-                      });
+                  });
 
                   // add the updated token to the message
                   message.token = authorization_result.bot.token;
