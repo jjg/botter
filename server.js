@@ -310,7 +310,7 @@ function update_message(req, res, next){
   var token = req.query.token;
   var override = req.query.override;
   var message = req.body;
-  message.message_id = req.message_id;
+  message.message_id = req.params.message_id;
 
   // authorize
   check_authorization(token, override, function(authorization_result){
@@ -345,11 +345,59 @@ function update_message(req, res, next){
   });
 }
 
-// TODO: delete message
+// delete message
 function delete_message(req, res, next){
   log.message(log.DEBUG, "delete_message()");
-  // TODO: remove message data
-  // TODO: remove message from message index
+  var bot_name = req.params.bot_name;
+  var token = req.query.token;
+  var override = req.query.override;
+  var message_id = req.params.message_id;
+  var message = {};
+
+  // authorize
+  check_authorization(token, override, function(authorization_result){
+
+     // only let a bot post its own messages
+     if(authorization_result.authorized && authorization_result.bot.name === bot_name){
+
+       // delete message
+      redis.del(message.message_id, function(error, value){
+         if(error){
+             log.message(log.ERROR, "Error deleting message: " + error);
+           return next(new restify.InternalError(error));
+         } else {
+  
+          // add message to bot's message index
+              redis.srem(authorization_result.bot.name + ":messages", message_id, function(error, value){
+                 if(error){
+                 log.message(log.ERROR, "Error removing message from bot's message index: " + error);
+                 return next(new restify.InternalError(error));
+               } else {
+                 // remove message from global index
+                 redis.srem("messages", message_id, function(error, value){
+                     if(error){
+                     log.message(log.ERROR, "Error removing message from index: " + error);
+                     return next(new restify.InternalError(error));
+                     } else {
+  
+                       // add the updated token to the message
+                     message.token = authorization_result.bot.token;
+    
+                     // return result
+                     res.send(message);
+                     return next;
+                     } 
+                 });
+              }
+           });
+         }
+      });
+    } else {
+      // return unauthorized
+      log.message(log.WARN, "Authorization failed: " + authorization_result.reason);
+      return next(new restify.NotAuthorizedError(token));
+    }
+  });
 }
 
 // list messages
