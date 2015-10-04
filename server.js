@@ -2,6 +2,7 @@ var crypto = require("crypto");
 var config = require("./config.js");
 var redis = require("redis-url").connect(config.REDIS_URL);
 var restify = require("restify");
+var fs = require("fs");
 var log = require("jlog.js");
 log.level = config.LOG_LEVEL;
 
@@ -42,6 +43,13 @@ function get_status(req, res, next){
   log.message(log.DEBUG, "get_status()");
   res.send(200);
   return next;
+}
+
+function show_feed(req, res, next){
+  fs.readFile("./static/index.html", "utf8", function(error, data){
+    res.end(data);
+    return next;
+  });
 }
 
 // create new bot
@@ -637,6 +645,7 @@ function check_authorization(token, override, callback){
 }
 
 // endpoints
+server.get({path:"/", version: "1.0.0"}, show_feed);
 server.get({path:"/status", version: "1.0.0"}, get_status);
 server.get({path:"/bots", version: "1.0.0"}, list_bots);
 server.post({path:"/bots", version: "1.0.0"}, new_bot);
@@ -655,10 +664,11 @@ server.put({path:"/messages/:message_id", version: "1.0.0"}, update_message);
 server.del({path:"/messages/:message_id", version: "1.0.0"}, delete_message);
 
 // static files
-server.get(/\/?.*/, restify.serveStatic({
-  directory: "./static",
-  default: "index.html"
-}));
+//server.get(/\/?.*/, restify.serveStatic({
+//  directory: "./static",
+//  default: "index.html"
+//}));
+
 
 // start server
 server.listen(config.SERVER_PORT, function() {
