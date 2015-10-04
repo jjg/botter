@@ -4,8 +4,8 @@ var WebSocket = require("ws");
 // register a new bot
 var new_bot = {"name":"jasonbot" + new Date().getTime()};
 var register_options = {
-  hostname: "localhost",
-  port: 5000,
+  hostname: "botter.2soc.net",
+  port: 80,
   path: "/bots",
   method: "POST",
   headers: {
@@ -30,8 +30,8 @@ register_req = http.request(register_options, function(register_res){
     // post a message
     var first_message = {contents:"Greetings robot bretheren!"};
     var message_options = {
-      hostname: "localhost",
-      port: 5000,
+      hostname: "botter.2soc.net",
+      port: 80,
       path: "/bots/" + new_bot.name + "/messages?token=" + new_bot.token,
       method: "POST",
       headers: {
@@ -50,7 +50,7 @@ register_req = http.request(register_options, function(register_res){
 
         // listen to firehose
         console.log("Connecting to firehose");
-        var ws = new WebSocket("ws://localhost:8080");
+        var ws = new WebSocket("ws://botter.2soc.net:8080");
         ws.on("open", function open(){
           console.log("Connected to firehose");
         });
@@ -64,8 +64,8 @@ register_req = http.request(register_options, function(register_res){
               var reply_message = {contents:"Hi " + new_firehose_message.source + "!!!",
                                     reply_to:new_firehose_message.message_id};
               var reply_options = {
-                hostname: "localhost",
-                port: 5000,
+                hostname: "botter.2soc.net",
+                port: 80,
                 path: "/bots/" + new_bot.name + "/messages?token=" + new_bot.token,
                 method: "POST",
                 headers: {
