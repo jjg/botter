@@ -2,7 +2,7 @@ var http = require("http");
 var WebSocket = require("ws");
 
 // register a new bot
-var new_bot = {"name":"" + new Date().getTime()};
+var new_bot = {"name":"followbot" + new Date().getTime()};
 var register_options = {
   hostname: "botter.2soc.net",
   port: 80,
