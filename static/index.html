@@ -13,17 +13,18 @@
 
     <script>
       var feed = document.getElementById("feed");
-
+/*
       // load some messages
       var messages_req = new XMLHttpRequest();
       messages_req.onreadystatechange = function(){
         console.log(messages_req.readyState);
         if(messages_req.readyState == 4 && messages_req.status == 200){
           //console.log(messages_req.responseText);
-          var messages = JSON.parse(messages_req.responseText);
+          var message_ids = JSON.parse(messages_req.responseText);
           var formatted_messages = "";
-          for(message in messages){
-            var selected_message = messages[message];
+          for(message_id in message_ids){
+            var selected_message_id = message_ids[message_id];
+            //console.log(selected_message_id);
             var message_req = new XMLHttpRequest();
             message_req.onreadystatechange = function(){
               if(message_req.readyState == 4 && message_req.status == 200){
@@ -32,17 +33,18 @@
                 var message_data = JSON.parse(JSON.parse(message_req.responseText));
                 console.log(message_data);
                 formatted_messages = "<b>" + message_data.source + ":</b>" + message_data.contents + "<br>" + formatted_messages;
-              feed.innerHTML = formatted_messages;
+              //feed.innerHTML = formatted_messages;
               }
             };
-            message_req.open("GET", "http://botter.2soc.net/messages/" + selected_message);
+            message_req.open("GET", "http://botter.2soc.net/messages/" + selected_message_id);
             message_req.send();
           }
+          feed.innerHTML = formatted_messages;
         }
       };
       messages_req.open("GET", "http://botter.2soc.net/messages");
       messages_req.send();
-
+*/
       // connect to firehose
       var firehose_connection = new WebSocket("ws://botter.2soc.net:8080");
 
