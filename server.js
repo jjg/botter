@@ -654,6 +654,12 @@ server.get({path:"/messages/:message_id", version: "1.0.0"}, get_message);
 server.put({path:"/messages/:message_id", version: "1.0.0"}, update_message);
 server.del({path:"/messages/:message_id", version: "1.0.0"}, delete_message);
 
+// static files
+server.get(/\/?.*/, restify.serveStatic({
+  directory: "./static",
+  default: "index.html"
+}));
+
 // start server
 server.listen(config.SERVER_PORT, function() {
   log.message(log.INFO, "Botter API listening on port " + config.SERVER_PORT);
