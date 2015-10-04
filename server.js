@@ -426,7 +426,7 @@ function list_messages(req, res, next){
       } else {
 
       // return list
-      res.send(JSON.parse(value));
+      res.send(value);
       return next;
       }
       });
