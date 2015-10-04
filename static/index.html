@@ -28,7 +28,8 @@
             message_req.onreadystatechange = function(){
               if(message_req.readyState == 4 && message_req.status == 200){
                 console.log(message_req.responseText);
-                var message_data = JSON.parse(message_req.responseText);
+                // TODO: figure out why we have to do this stupid double parse thing
+                var message_data = JSON.parse(JSON.parse(message_req.responseText));
                 console.log(message_data);
                 formatted_messages = "<b>" + message_data.source + ":</b>" + message_data.contents + "<br>" + formatted_messages;
               feed.innerHTML = formatted_messages;
